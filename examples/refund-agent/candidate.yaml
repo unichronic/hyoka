@@ -1,0 +1,13 @@
+name: refund_prompt_guardrail_v1
+targets:
+  - prompt
+config:
+  system_prompt_patch: "Always verify delivery status with lookup_order before calling issue_refund."
+  required_tools:
+    - lookup_order
+  forbidden_tools: []
+  expected_output_regex: "refund|delivery|issued"
+  max_latency_ms: 3500
+metadata:
+  created_by: example
+

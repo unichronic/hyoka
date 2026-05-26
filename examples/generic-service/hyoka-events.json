@@ -1,0 +1,75 @@
+[
+  {
+    "event_id": "evt_generic_start",
+    "trace_id": "tr_generic_refund_001",
+    "type": "trace_start",
+    "source": "hyoka_exposition",
+    "service_name": "checkout-api",
+    "agent_name": "refund-agent",
+    "environment": "dev",
+    "input": {
+      "role": "user",
+      "content": "Refund order A123"
+    },
+    "labels": {
+      "service": "checkout-api",
+      "version": "2026.05.23",
+      "region": "local"
+    }
+  },
+  {
+    "event_id": "evt_generic_lookup",
+    "trace_id": "tr_generic_refund_001",
+    "type": "tool_call",
+    "name": "lookup_order",
+    "duration_ms": 42,
+    "input": {
+      "order_id": "A123"
+    },
+    "output": {
+      "status": "delivered"
+    },
+    "attributes": {
+      "tool_name": "lookup_order"
+    },
+    "labels": {
+      "service": "checkout-api",
+      "version": "2026.05.23"
+    }
+  },
+  {
+    "event_id": "evt_generic_llm",
+    "trace_id": "tr_generic_refund_001",
+    "type": "llm_call",
+    "name": "refund_planner",
+    "duration_ms": 620,
+    "input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "Refund order A123"
+        }
+      ]
+    },
+    "output": "Order is delivered; refund may be issued.",
+    "attributes": {
+      "provider": "openai-compatible",
+      "model": "gpt-4.1-mini",
+      "tokens_input": 120,
+      "tokens_output": 32,
+      "cost_usd": 0.0004
+    },
+    "labels": {
+      "service": "checkout-api",
+      "model": "gpt-4.1-mini"
+    }
+  },
+  {
+    "event_id": "evt_generic_end",
+    "trace_id": "tr_generic_refund_001",
+    "type": "trace_end",
+    "duration_ms": 900,
+    "output": "Your refund has been issued after verifying delivery."
+  }
+]
+

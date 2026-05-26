@@ -1,0 +1,64 @@
+[project]
+name = "hyoka"
+version = "0.1.0"
+description = "Pluggable reliability and self-improvement layer for AI agents."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "alembic>=1.14.0",
+  "boto3>=1.35.0",
+  "fastapi>=0.115.0",
+  "httpx>=0.28.0",
+  "jsonschema>=4.23.0",
+  "prometheus-client>=0.21.0",
+  "psycopg[binary]>=3.2.0",
+  "pydantic>=2.10.0",
+  "pydantic-settings>=2.7.0",
+  "python-json-logger>=3.2.0",
+  "pyyaml>=6.0.2",
+  "rich>=13.9.0",
+  "sqlalchemy>=2.0.36",
+  "typer>=0.15.0",
+  "uvicorn[standard]>=0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "aiosqlite>=0.20.0",
+  "pytest>=8.3.0",
+  "pytest-cov>=6.0.0",
+  "respx>=0.22.0",
+  "ruff>=0.8.0",
+]
+
+[project.scripts]
+hyoka = "hyoka_cli.main:app"
+hyoka-server = "hyoka_server.main:run"
+hyoka-worker = "hyoka_worker.main:main"
+hyoka-proxy = "hyoka_proxy.main:run"
+
+[build-system]
+requires = ["setuptools>=75.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = [
+  "apps/server",
+  "apps/worker",
+  "apps/proxy",
+  "packages/schemas",
+  "packages/cli",
+  "packages/sdk-py",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008", "E501"]

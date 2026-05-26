@@ -1,0 +1,11 @@
+suite: support-v1
+mode: mock
+min_pass_rate: 0.95
+max_flaky_rate: 0.0
+max_p95_latency_ms: 3500
+block_on:
+  - unsafe_tool_call
+  - missing_required_tool
+required_artifacts:
+  - manifest
+

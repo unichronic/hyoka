@@ -1,0 +1,50 @@
+{
+  "schema_version": "hyoka.exposition.v1",
+  "labels": {
+    "service": "checkout-api",
+    "environment": "dev"
+  },
+  "events": [
+    {
+      "event_id": "evt_exposed_start",
+      "trace_id": "tr_exposed_refund_001",
+      "type": "trace_start",
+      "source": "hyoka_exposition",
+      "service_name": "checkout-api",
+      "agent_name": "refund-agent",
+      "environment": "dev",
+      "input": {
+        "role": "user",
+        "content": "Refund order B456"
+      },
+      "labels": {
+        "service": "checkout-api",
+        "version": "2026.05.23"
+      }
+    },
+    {
+      "event_id": "evt_exposed_tool",
+      "trace_id": "tr_exposed_refund_001",
+      "type": "tool_call",
+      "name": "lookup_order",
+      "duration_ms": 35,
+      "input": {
+        "order_id": "B456"
+      },
+      "output": {
+        "status": "delivered"
+      },
+      "attributes": {
+        "tool_name": "lookup_order"
+      }
+    },
+    {
+      "event_id": "evt_exposed_end",
+      "trace_id": "tr_exposed_refund_001",
+      "type": "trace_end",
+      "duration_ms": 760,
+      "output": "Refund issued after delivery verification."
+    }
+  ]
+}
+

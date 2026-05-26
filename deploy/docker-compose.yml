@@ -1,0 +1,120 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: hyoka
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: hyoka
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hyoka -d hyoka"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: Dockerfile.python
+    command: ["hyoka", "db", "upgrade", "head"]
+    environment:
+      HYOKA_DATABASE_URL: postgresql+psycopg://hyoka:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/hyoka
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  server:
+    build:
+      context: ..
+      dockerfile: Dockerfile.python
+    environment:
+      HYOKA_DATABASE_URL: postgresql+psycopg://hyoka:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/hyoka
+      HYOKA_ARTIFACT_BACKEND: ${HYOKA_ARTIFACT_BACKEND:-local}
+      HYOKA_ARTIFACT_ROOT: /data/artifacts
+      HYOKA_ARTIFACT_S3_BUCKET: ${HYOKA_ARTIFACT_S3_BUCKET:-}
+      HYOKA_ARTIFACT_S3_PREFIX: ${HYOKA_ARTIFACT_S3_PREFIX:-hyoka/artifacts}
+      HYOKA_ARTIFACT_S3_REGION: ${HYOKA_ARTIFACT_S3_REGION:-}
+      HYOKA_ARTIFACT_S3_ENDPOINT_URL: ${HYOKA_ARTIFACT_S3_ENDPOINT_URL:-}
+      HYOKA_AUTO_MIGRATE: "false"
+      HYOKA_INLINE_WORKER: "false"
+      HYOKA_REQUIRE_API_KEY: "true"
+      HYOKA_API_KEYS: ${HYOKA_BOOTSTRAP_API_KEY:?HYOKA_BOOTSTRAP_API_KEY is required}
+      HYOKA_MANIFEST_SECRET: ${HYOKA_MANIFEST_SECRET:?HYOKA_MANIFEST_SECRET is required}
+      HYOKA_CORS_ALLOW_ORIGINS: ${HYOKA_CORS_ALLOW_ORIGINS:-http://localhost:3000}
+      HYOKA_WORKER_MAX_ATTEMPTS: ${HYOKA_WORKER_MAX_ATTEMPTS:-3}
+    ports:
+      - "8686:8686"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - artifact-data:/data/artifacts
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8686/readyz >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile.python
+    command: ["hyoka-worker", "serve"]
+    environment:
+      HYOKA_DATABASE_URL: postgresql+psycopg://hyoka:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/hyoka
+      HYOKA_ARTIFACT_BACKEND: ${HYOKA_ARTIFACT_BACKEND:-local}
+      HYOKA_ARTIFACT_ROOT: /data/artifacts
+      HYOKA_ARTIFACT_S3_BUCKET: ${HYOKA_ARTIFACT_S3_BUCKET:-}
+      HYOKA_ARTIFACT_S3_PREFIX: ${HYOKA_ARTIFACT_S3_PREFIX:-hyoka/artifacts}
+      HYOKA_ARTIFACT_S3_REGION: ${HYOKA_ARTIFACT_S3_REGION:-}
+      HYOKA_ARTIFACT_S3_ENDPOINT_URL: ${HYOKA_ARTIFACT_S3_ENDPOINT_URL:-}
+      HYOKA_AUTO_MIGRATE: "false"
+      HYOKA_MANIFEST_SECRET: ${HYOKA_MANIFEST_SECRET:?HYOKA_MANIFEST_SECRET is required}
+      HYOKA_WORKER_MAX_ATTEMPTS: ${HYOKA_WORKER_MAX_ATTEMPTS:-3}
+      HYOKA_ENABLE_HTTP_REPLAY: ${HYOKA_ENABLE_HTTP_REPLAY:-false}
+      HYOKA_HTTP_REPLAY_ALLOWED_HOSTS: ${HYOKA_HTTP_REPLAY_ALLOWED_HOSTS:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - artifact-data:/data/artifacts
+
+  proxy:
+    build:
+      context: ..
+      dockerfile: Dockerfile.python
+    command: ["hyoka-proxy"]
+    environment:
+      HYOKA_SERVER_URL: http://server:8686
+      HYOKA_API_KEY: ${HYOKA_BOOTSTRAP_API_KEY:?HYOKA_BOOTSTRAP_API_KEY is required}
+      HYOKA_PROJECT_ID: ${HYOKA_PROJECT_ID:-default}
+      HYOKA_PROXY_UPSTREAM_BASE_URL: https://api.openai.com
+      HYOKA_PROVIDER_API_KEY: ${HYOKA_PROVIDER_API_KEY:-}
+    ports:
+      - "8687:8687"
+    depends_on:
+      server:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: ../apps/dashboard
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_HYOKA_API_URL: http://localhost:8686
+      HYOKA_INTERNAL_API_URL: http://server:8686
+      HYOKA_API_KEY: ${HYOKA_BOOTSTRAP_API_KEY:?HYOKA_BOOTSTRAP_API_KEY is required}
+      HYOKA_PROJECT_ID: ${HYOKA_PROJECT_ID:-default}
+    ports:
+      - "3000:3000"
+    depends_on:
+      server:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  artifact-data:

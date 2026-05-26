@@ -1,0 +1,29 @@
+FROM python:3.13-slim AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_SYSTEM_PYTHON=1
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /usr/local/bin/uv
+COPY pyproject.toml README.md alembic.ini ./
+COPY alembic ./alembic
+COPY apps ./apps
+COPY packages ./packages
+
+RUN uv pip install --system "."
+
+RUN useradd --create-home --uid 10001 hyoka \
+  && mkdir -p /data/artifacts \
+  && chown -R hyoka:hyoka /data
+
+USER hyoka
+
+EXPOSE 8686
+
+CMD ["hyoka-server"]
